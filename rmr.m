@@ -1,5 +1,5 @@
 function rmr()
-    %% Constant definitios.
+    %% Constant definitions.
     % Link lengths
     l(1) = 1.0;
     l(2) = 1.0;
@@ -8,7 +8,9 @@ function rmr()
     % Sampling period
     ts = 0.05;
     % Redundant solution gain
-    kh = 0.05;
+    kh = 0.5;
+    % Button movement step.
+    bstep = 0.1;
     
     %% Desired end-effector line equation (ax + by + c = 0).
     a = 1.0;
@@ -34,26 +36,44 @@ function rmr()
     % ob(3) = x-coordinate of obstacle 2.
     % ob(4) = x-coordinate of obstacle 2.
     ob(1) = 1.2;
-    ob(2) = -2.2;
+    ob(2) = -1.5;
     ob(3) = 1.2;
-    ob(4) = ob(2) + obdist;
-
+    ob(4) = ob(2) - obdist;
+    
     %% Initialize figure and buttons.
     fhandle = figure('Position', [200, 200, 800, 600],...
                      'Resize', 'off');
     upbutton = uicontrol(fhandle,...
                          'Style', 'pushbutton',...
                          'String', 'Up',...
-                         'Position', [20, 100, 60, 20]);
-    set(upbutton, 'Callback', 'upbutton_pressed()');
+                         'Position', [20, 100, 60, 20],...
+                         'Callback', @upbutton_callback);
     downbutton = uicontrol(fhandle,...
                            'Style', 'pushbutton',...
                            'String', 'Down',...
-                           'Position', [20, 60, 60, 20]);
+                           'Position', [20, 60, 60, 20],...
+                           'Callback', @downbutton_callback);
     closebutton = uicontrol(fhandle,...
                             'Style', 'pushbutton',...
                             'String', 'Close',...
                             'Position', [20, 20, 60, 20]);
+    set(closebutton, 'Callback', 'close(gcbf)');
+
+    %% Up-button callback function.
+    function upbutton_callback(hObject, eventdata)
+        if(ob(2) < 1.5)
+            ob(2) = ob(2) + bstep;
+            ob(4) = ob(4) + bstep;
+        end
+    end
+    
+    %% Down-button callback function.
+    function downbutton_callback(hObject, eventdata)
+        if(ob(2) > -1.5)
+            ob(2) = ob(2) - bstep;
+            ob(4) = ob(4) - bstep;
+        end
+    end
     
     %% Initialize plot.
     axeshandle = axes('Parent', fhandle,...
@@ -81,6 +101,11 @@ function rmr()
         PJ = pinv(J);
         qdot = PJ * pdot + kh * (eye([4 4]) - PJ * J) * hgrad(q, ob);
         q = q + qdot * ts;
+    end
+    
+    %% Euclidean distance between two points in 2D-space.
+    function d = mydist(p1, p2)
+       d = sqrt((p1(1) - p2(1)) ^ 2 + (p1(2) - p2(2)) ^ 2);
     end
     
     %% Gradient of the cost function regarding the obstacles.
@@ -117,7 +142,7 @@ function rmr()
         lWidth = 3;
         eWidth = 2;
         jSize = 10;
-        obSize = 10 * obr;
+        obSize = 100 * obr;
         % Draw the desired end-effector position line (crashes for
         % horizontal lines).
         line([(4*b-c)/a, (-4*b-c)/a], [-3.5, 1.5],...
@@ -182,11 +207,5 @@ function rmr()
             'MarkerSize', obSize,...
             'MarkerEdgeColor', obEdgeColor,...
             'MarkerFaceColor', obFaceColor);
-    end
-
-    %% Up-button callback function.
-    function upbutton_pressed()
-       if(ob(4) < 1.5)
-           
     end
 end
