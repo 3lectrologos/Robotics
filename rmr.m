@@ -1,3 +1,15 @@
+%%% ----------------------------------------------------------------------
+%%%
+%%% Author:     Alkis Gotovos <el3ctrologos@hotmail.com>
+%%% Decription: A GUI simulating a 4-dof redundant manipulator executing
+%%%             two tasks. The first task is a position constraint for
+%%%             the end-effector (staying on a line), while the second
+%%%             task is avoiding two circular obstacles which can be
+%%%             moved by the user via the GUI.
+%%% Created:    19 May 2010
+%%%
+%%% ----------------------------------------------------------------------
+
 function rmr()
     %% Constant definitions.
     % Link lengths
@@ -11,6 +23,8 @@ function rmr()
     kh = 0.05;
     % Button movement step.
     bstep = 0.05;
+    % Continue loop flag.
+    cont = true;
     
     %% Desired end-effector line equation (ax + by + c = 0).
     a = 1.0;
@@ -31,13 +45,13 @@ function rmr()
     % Distance between obstacles (y-direction).
     obdist = 1.0;
     % Initial obstacle positions.
-    % ob(1) = x-coordinate of obstacle 1.
-    % ob(2) = y-coordinate of obstacle 1.
-    % ob(3) = x-coordinate of obstacle 2.
-    % ob(4) = x-coordinate of obstacle 2.
+    % x-coordinate of obstacle 1.
     ob(1) = 1.2;
+    % y-coordinate of obstacle 1.
     ob(2) = -1.5;
+    % x-coordinate of obstacle 2.
     ob(3) = 1.2;
+    % x-coordinate of obstacle 2. 
     ob(4) = ob(2) - obdist;
     
     %% Initialize figure and buttons.
@@ -57,7 +71,7 @@ function rmr()
                             'Style', 'pushbutton',...
                             'String', 'Close',...
                             'Position', [20, 20, 60, 20]);
-    set(closebutton, 'Callback', 'close(gcbf)');
+    set(closebutton, 'Callback', @closebutton_callback);
 
     %% Up-button callback function.
     function upbutton_callback(hObject, eventdata)
@@ -75,6 +89,13 @@ function rmr()
         end
     end
     
+    %% Close-button callback function.
+    function closebutton_callback(hObject, eventdata)
+       cont = false;
+       pause(1.0);
+       close(gcbf);
+    end
+
     %% Initialize plot.
     axeshandle = axes('Parent', fhandle,...
                       'Position', [0.15, 0.05, 0.80, 0.90]);
@@ -82,7 +103,7 @@ function rmr()
     
     
     %% Resolved motion rate control loop.
-    while true
+    while cont
         % Clear old plot.
         cla(axeshandle);
         % Draw manipulator.
@@ -112,11 +133,14 @@ function rmr()
     function h = hdist(v)
         ob1 = [ob(1) ob(2)];
         ob2 = [ob(3) ob(4)];
-        j2 = [l(1)*cos(v(1)), l(1)*sin(v(1))];
+        % j2 = [l(1)*cos(v(1)), l(1)*sin(v(1))];
+        % Coordinates of 3rd joint.
         j3 = [l(1)*cos(v(1))+l(2)*cos(v(1)+v(2)),...
               l(1)*sin(v(1))+l(2)*sin(v(1)+v(2))];
+        % Coordinates of 4th joint.
         j4 = [l(1)*cos(v(1))+l(2)*cos(v(1)+v(2))+l(3)*cos(v(1)+v(2)+v(3)),...
               l(1)*sin(v(1))+l(2)*sin(v(1)+v(2))+l(3)*sin(v(1)+v(2)+v(3))];
+        % Points on 3rd link.
         dp = [%j2,...
               %0.2 * j2 + 0.8 * j3,...
               %0.8 * j2 + 0.2 * j3,...
@@ -132,8 +156,6 @@ function rmr()
               0.8 * j3 + 0.2 * j4];
         h = 0;
         for i=1:length(dp)
-           %h = h + 1/(3 * mydist(dp, ob1)^2.0);
-           %h = h + 1/(3 * mydist(dp, ob2)^2.0);
            %h = h + 15000 / exp(19 * mydist(dp, ob1));
            %h = h + 15000 / exp(19 * mydist(dp, ob2));
            h = h + 100000000 / (30 + exp(40 * mydist(dp, ob1)));
@@ -141,8 +163,8 @@ function rmr()
         end
     end
 
-    %% Returns an approximation of the gradient of  the 'h' function
-     % at the current point q.
+    %% Returns an approximation of the gradient of the 'h' function.
+     % The gradient is computed at the current point q.
     function g = hgrad()
        eps = 0.01;
        g1_low = hdist([q(1) - eps, q(2), q(3), q(4)]);
