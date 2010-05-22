@@ -25,6 +25,8 @@ function rmr()
     bstep = 0.05;
     % Continue loop flag.
     cont = true;
+    % Figure number counter
+    fig = 1;
     
     %% Desired end-effector line equation (ax + by + c = 0).
     a = 1.0;
@@ -57,6 +59,11 @@ function rmr()
     %% Initialize figure and buttons.
     fhandle = figure('Position', [200, 200, 800, 600],...
                      'Resize', 'off');
+    savebutton = uicontrol(fhandle,...
+                           'Style', 'pushbutton',...
+                           'String', 'Save',...
+                           'Position', [20, 140, 60, 20],...
+                           'Callback', @savebutton_callback);
     upbutton = uicontrol(fhandle,...
                          'Style', 'pushbutton',...
                          'String', 'Up',...
@@ -73,6 +80,12 @@ function rmr()
                             'Position', [20, 20, 60, 20]);
     set(closebutton, 'Callback', @closebutton_callback);
 
+    %% Save-button callback function.
+    function savebutton_callback(hObject, eventdata)
+       savefig(sprintf('fig%d', fig), fhandle, 'pdf');
+       fig = fig + 1;
+    end
+    
     %% Up-button callback function.
     function upbutton_callback(hObject, eventdata)
         if(ob(4) <= 1.5)
